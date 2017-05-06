@@ -1,0 +1,341 @@
+\documentclass[a4paper,openany]{memoir}
+
+\usepackage[utf8x]{inputenc}
+\usepackage{graphicx}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage[english]{babel}
+\usepackage[pdftex,colorlinks=true]{hyperref}
+\makeindex
+
+\begin{document}
+
+\title{gvpp}
+\author{Gianluca Meneghello \\ \small{gianmail@gmail.com}}
+%\settitlingpageprefooter{
+%\today\\
+%}
+%
+%\frontmatter
+%\titling
+\maketitle
+\tableofcontents
+
+\newpage
+\bibliographystyle{plain}
+
+%\mainmatter
+\chapter{Introduction}
+\label{chapter_Introduction}
+
+gvpp is a Velocity Prediction Program for sailing boats. It is designed to calculate the velocity of the boat under different wind conditions.
+gvpp is based on the DSYHS for the hull's hydrodynamic \cite{DSYHS} and the 1980 Hazen's model for sail aerodynamic \cite{PYD}\\
+In addition, the various boat's resistance components can be provided by the user with plain text files that will be described in chapter \ref{chapter_UserProvidedFiles}.\\
+The solution is obtained by solving a constrained maximization problem whose variable are the boat speed \textit{V}, the heel angle \textit{phi}, the crew arm \textit{b}, and a factor \textit{F} taking account of the the eventual flattening of the sails. The variable to be maximized is \textit{V}.
+Constraints are applied on the four variables, which are required to assume a value between user specified minimum and maximun, the equilibrium equations for the forces along the longitudinal direction and for the heeling and righting moment\footnote{The equilibrium equations in the other directions are suppose to be automatically satisfied and to have no influence in the resistance or the driving force. Only the side force is supposed to produce an induced resistance on the keel that will be considered.}.
+
+gvpp is written in Matab. To let it run, this requires to download and install an additional 140 MB file, the Matlab Component Runtime, unless you already have Matlab installed on your computer. The Matlab Component Runtime IS NOT an open source software and is copyrighted by the Mathworks Inc.
+
+I would like to write it in C(++), but I did not find a library providing a non-linear contrained minimization algorithm, and I'm so far not able to write it on my own. Does anybody know about such a library (or has a function about it), please let me know.
+
+\chapter{Limitations}
+\label{chapter_Limitations}
+
+The DSYHS are subject to limitations in the geometrical parameters and Froude number that can lead to valid results. These limitations, reported in Keuning and Sommemberg's article \cite{DSYHS}, are reported in table \ref{tab:DSYHS_parameters_range}.
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{c c r r}
+    Length - Beam Ratio  & $\dfrac{Lwl}{Bwl}$ & 2.73 & 5.00  \\[1.2em]
+    Beam - Draft Ratio   & $\dfrac{Bwl}{Tc }$ & 2.46 & 19.38 \\[1.2em]
+    Length - Displacement Ration & $\dfrac{Lwl}{\nabla c ^ {1/3}}$ & 4.34 & 8.50 \\[1.2em]
+    Longitudinal Centre of Buoyancy & $LCB$ & 0.0\% & -8.2\% \\[1.2em]
+    Longitudinal Centre of Floatation & $LCF$ & -1.8\% & -9.5\% \\[1.2em]
+    Prismatic Coefficient & $Cp$ & 0.52 & 0.60 \\[1.2em]
+    Midship Area Coefficient & $Cm$ & 0.65 & 0.78 \\[1.2em]
+    Loading Factor & $\dfrac{Aw}{\nabla c ^ {2/3}} $ & 3.78 & 12.67 
+  \end{tabular}
+  \caption{Range of Hull Parameters tested in the DSYHS, from \cite{DSYHS}}
+  \label{tab:DSYHS_parameters_range}
+\end{table}
+
+Even if the data are outside these values, gvpp performs the calculation, but this may lead to a high approximation of the results. A warning is displayed if the user provided data are out of the range.
+Besides that, please use gvpp's results with care.
+Be aware that the software has not been experimentally tested. Even when tested, it may give incorrect results: the maximization problem has more than one solution and it's not always possible to know which solution is provided. In addition, results, even if correct, are supposed to be approximated as both the aerodynamic and the hydrodynamic model are subject to approximations.
+
+\begin{center} 
+  \textbf{No warranty is provided that the results are correct.} 
+\end{center}
+
+\chapter{Run - Function }
+\label{chapter_RunFunction}
+
+To run gvpp, all the Input Files described in the following chapters are required to be present in the same folder as the Matlab functions. In order to launch the vpp, just call the vpp\_run.m function from inside Matlab.
+
+\chapter{Input Files}
+\label{chapter_InputFiles}
+All the inputs are supposed to be provided using plain text files. Each entry is to be provided as a describing label (case sensitive) followed by one or more values. The order of the entries is not important. Every line that does not start with a entry's label is not considered by the program, as well as any character on the right of the required values. Anyway, it is better to start a comment line with a \% or a \#. Spaces at the beginning of the line are not considered.\\
+Some modifications of the input files format are still possible in future revisions.
+
+\section{vpp.conf}
+This files contains different parameters used to control gvpp. This file is used only to declare the minimum and maximum values that the four variables of the maximization process can assume. The file has to be in the form reported in the following table.
+\begin{center}
+  \begin{tabular}{l l l l}
+    \texttt{V}		&$<V_{min}>$ 		& ${<V_{max}>}$ 	&\%Boat's Velocity, $[m/s]$\\
+    \texttt{phi}		&${<\phi_{min}>}$ 	& ${<\phi_{max}>}$ 	&\%Heeling angle $[deg]$\\
+    \texttt{b}		&${<b_{min}>}$	 	& ${<b_{max}>}$ 	&\%Crew arm $[m]$\\
+    \texttt{F}		&${<F_{min}>}$	 	& ${<F_{max}>}$ 	&\%Flattening factor $[-]$\\
+  \end{tabular}
+\end{center}
+
+\section{vpp.phys}
+Physical constants are provided in this file. The file format is shown in the following table.
+\begin{center}
+  \begin{tabular}{lll}
+    \texttt{\%Water data}\\
+    \texttt{rho\_w} 	&${[Kg/m^3]}$ 	&\%Water Density\\
+    \texttt{ni\_w}		&${[m^2/s]}$	&\%Water Kinematic viscosity\\
+    \texttt{\%Air data}\\
+    \texttt{rho\_a}   	&${[Kg/m^3]}$	&\%Air Density\\
+    \texttt{\%General data}\\
+    \texttt{g}		&${[m/s^2]}$	&\%gravitational acceleration\\
+  \end{tabular}
+\end{center}
+
+
+\section{vpp.Rconf}
+
+As presented in the introduction, resistance components can be calculated with the DSYHS or provided by the user. vpp.Rconf contains information about which method is used for the resistance calculation.	\\
+Each entry is required, refers to a single resistance component and can assume one of the following three values:
+\begin{center}
+  \begin{tabular}{l l}
+    0	& if the component is not considered\\
+    1  	& if the component is user provided\\
+    2	& if the component is calculated with the DSYHS\\
+  \end{tabular}
+\end{center}
+
+The file format is:
+\begin{center}
+  \begin{tabular}{l l l}
+    \texttt{Rvh}		&${<value>}$ 	&\%Hull viscous resistance\\
+    \texttt{Rrh}		&${<value>}$ 	&\%Hull residuary resistance\\
+    \texttt{Rvk}		&${<value>}$ 	&\%Keel viscous resistance\\
+    \texttt{Rvr}		&${<value>}$ 	&\%Rudder viscous resistance\\
+    \texttt{Rrk}		&${<value>}$ 	&\%Keel residuary resistance\\
+    \texttt{RvhH}		&${<value>}$ 	&\%Change in hull viscous resistance due to heel\\
+    \texttt{RrhH}		&${<value>}$ 	&\%Change in hull residuary resistance due to heel\\
+    \texttt{RrkH}		&${<value>}$ 	&\%Change in keel resiudary resistance due to heel\\
+    \texttt{Ri}		&${<value>}$ 	&\%Keel induced resistance\\
+    \texttt{RrhT} 		&${<value>}$ 	&\%Change in hull residuary resistance due to trim\\
+  \end{tabular}
+\end{center}
+
+THE LAST COMPONENT HAS NOT BEEN IMPLEMENTED IN THIS VERSION. PLEASE LEAVE IT SET TO 0\\
+Please look at the chapter \ref{chapter_UserProvidedFiles} for the definition of files containing user provided data.
+
+
+\section{vpp.wind}
+
+This file contains the true wind speed and the true wind angle at wich the calculation of the boat speed has to be done. Only two entrys are required:\\
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{l l l}
+    \texttt{V\_tw}		&${[m/s]}$	&\%True wind speeds\\
+    \texttt{alfa\_tw}	&${[deg]}$	&\%True wind angle\\
+  \end{tabular}
+\end{table}
+
+The speeds and incidence angles may be provided as a list of values separed by a space or a coma, or by a starting value, a step value and an end value. For example the two following entrys are equivalent:\\
+
+\begin{center} 
+  \texttt{alfa\_tw 40 5 60}\\
+  \texttt{alfa\_tw 40 45 50 55 60} 
+\end{center}
+
+
+\section{vpp.geom}
+
+This file contains the geometrical description of the boat (hull, keel, sails, rudder). Each one of the following entry is required by the program. The labels follows, where possible, the ITTC symbols \footnote{you can find the official list here: http://ittc.sname.org/documents.htm}. Where no matching symbols have been found, I used the ones I believed are the most commonly used. If you have good reason to think that it's not so, please write me.\\
+Each label has to be followed by one value. Extra values will not be take into consideration by the program. The dimension is specified in the following list instead of the value. Labels are case-sensitive.\\
+A couple of entries may require further explanation:\\
+\begin{itemize}
+  \item 
+
+    SAILSET: it tells the vpp which sails are used in the simulation and can assume the following values:
+    \begin{center}
+      \begin{tabular}[h]{c l}
+	1 & Main only \\
+	3 & Main and Jib \\
+	5 & Main and Spinnaker \\
+	7 & Main, Jib and Spinnaker 
+      \end{tabular}
+    \end{center}
+    Be aware that no sails interference is computed by the vpp, so if you set both the Spinnaker and the Ji it means you have both the sails working.
+  \item MROACH: the main sail area is computed by the gvpp as \\ $0.5 \cdot P \cdot E \cdot M_{ROACH}$ \\
+    where $M_{ROACH}$ is the correction to the mainsail area due to the presence of the roach. Set it to 1 if no roach is present.
+\end{itemize}
+
+\begin{table}[h]
+  \centering
+  \small{
+  \begin{tabular}{lll}
+    \%Hull Section\\
+    \texttt{DIVCAN}			&${[m^3]}$ 		& \%Displaced volume of canoe body\\
+    \texttt{LWL}			&${[m]}$ 		& \%Design waterline's length\\
+    \texttt{BWL}			&${[m]}$ 		& \%Design waterline's beam\\
+    \texttt{B}       		&${[m]}$ 		& \%Design maximum beam\\
+    \texttt{AVGFREB}		&${[m]}$		& \%Avarage freeboard\\
+    \texttt{XFB}     		&${[m]}$ 		& \%Longitudinal center of buoyancy LCB from fpp\\
+    \texttt{XFF}     		&${[m]}$		& \%Longitudinal center of flotation LCF from fpp\\
+    \texttt{CPL}     		&${[-]}$		&\%Longitudinal prismatic coefficient\\
+    \texttt{HULLFF}  		&${[-]}$		&\%Hull form factor\\
+    \texttt{AW}     		&${[m^2]}$		&\%Design waterplane's area\\
+    \texttt{SC}      		&${[m^2]}$		&\%Wetted surface's area of canoe body\\
+    \texttt{CMS}     		&${[-]}$		&\%Midship section coefficient\\
+    \texttt{T}       		&${[m]}$		&\%Total draft\\
+    \texttt{TCAN}    		&${[m]}$		&\%Draft of banoe body\\
+    \texttt{ALT}     		&${[m]}$		&\%Total lateral area of yacht\\
+    \texttt{KG}      		&${[m]}$		&\%Center of gravity above moulded base or keel\\
+    \texttt{KM}      		&${[m]}$		&\%Transverse metacentre above moulded base or keel\\
+    \texttt{\%Keel Section}\\
+    \texttt{DVK}     		&${[m^3]}$		&\%Displaced volume of keel\\
+    \texttt{APK}    		&${[m^2]}$		&\%Keel's planform area\\
+    \texttt{ASK}    		&${[-]}$		&\%Keel's aspect ratio\\
+    \texttt{SK}    	 		&${[m^2]}$		&\%Keel's wetted surface\\
+    \texttt{ZCBK} 			&${[m]}$		&\%Keel's vertical center of buoyancy (above keel)\\
+    \texttt{CHMEK}			&${[m]}$		&\%Mean chord length\\
+    \texttt{CHRTK} 			&${[m]}$		&\%Root chord length\\
+    \texttt{CHTPK}			&${[m]}$		&\%Tip chord length\\
+    \texttt{KEELFF}			&${[-]}$		&\%Keels form factor\\
+    \texttt{DELTTK} 		&${[-]}$		&\%Mean thikness ratio of keel section\\
+    \texttt{TAK}     		&${[-]}$		&\%Taper ratio of keel (CHRTK/CHTPK)\\
+    \texttt{\%Rudder Section}\\
+    \texttt{DVR}     		&${[m^3]}$		&\%Rudder's displaced volume\\
+    \texttt{APR}     		&${[m^2]}$		&\%Rudder's planform area\\
+    \texttt{SR}      		&${[m^2]}$		&\%Rudder's wetted surface\\
+    \texttt{CHMER}   		&${[m]}$		&\%Mean chord length\\
+    \texttt{CHRTR}   		&${[m]}$		&\%Root chord length\\
+    \texttt{CHTPR}   		&${[m]}$		&\%Tip chord length\\
+    \texttt{DELTTR}  		&${[m]}$		&\%Mean thikness ratio of rudder section\\	
+    \texttt{RUDDFF}  		&${[-]}$		&\%Rudder's form factor\\
+    \texttt{\%Sails Section}\\
+    \texttt{SAILSET} 		&${[-]}$		&\%Sails used in the calculation\\
+    \texttt{P}       		&${[m]}$		&\%Mainsail heigth\\
+    \texttt{E}       		&${[m]}$		&\%Mainsail base\\
+    \texttt{MROACH}			&${[-]}$		&\%Correction for mainsail roach\\
+    \texttt{MFLB}			&${[0/1]}$		&\%Full length battens in main: 0: no, 1: yes\\
+    \texttt{BAD}     		&${[m]}$		&\%Boom heigth above deck\\
+    \texttt{I}       		&${[m]}$		&\%Foretriangle heigth\\
+    \texttt{J}       		&${[m]}$		&\%Foretriangle base\\
+    \texttt{LPG}     		&${[m]}$		&\%Perpendicular of longest jib\\
+    \texttt{SL}      		&${[m]}$		&\%Spinnaker length\\
+    \texttt{EHM}     		&${[m]}$		&\%Mast's heigth above deck\\
+    \texttt{EMDC}    		&${[m]}$		&\%Mast's avarage diameter\\
+    \texttt{\%Crew Section}\\
+    \texttt{MMVBLCRW} 		&${[Kg]}$		&\%Movable Crew Mass\\
+  \end{tabular}
+  }
+\end{table}
+
+
+\chapter{User provided files}
+\label{chapter_UserProvidedFiles}
+
+The files containing user provided data are plain text file. There must be a file for every resistance component that has been set to \texttt{1} in the \texttt{vpp.Rconf} file.
+The name of the user provided files are made of a \texttt{in} prefix followed by the name of the resistance component. For example, the file containing the user provided data for Rrh is named:
+\begin{center} 
+  \texttt{in\_Rrh} 
+\end{center}
+In these files, only the lines starting with a \% are considered as comments.
+Velocities are supposed to be in $[m/s]$, resistance values in $[N]$.
+The file may have one of two formats, depending on the resistance component it refers to.
+
+
+\section{in\_Rvh, in\_Rrh, in\_Rvk, in\_Rvr, in\_Rrk}
+
+These resistance components are function of the boat speed only. Thus, the files will have two column, V and the correspondent value of resistance.\\
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{l l}
+    \texttt{V1} & \texttt{R1}\\
+    \texttt{V2} & \texttt{R2}\\
+    \dots & \dots \\
+  \end{tabular}
+\end{table}
+
+
+\section{in\_RvhH, in\_RrhH, in\_RrkH, in\_RrhT}
+These resistance components are function of both the boat speed and the heeling (or trim) angle. Thus, a table has to be provided. Each line gives a boat speed and the correspondent resistance values at different heeling angle. The first line has to start with a \texttt{0}, followed by the heeling (or trim) angles.
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{l l l l}
+    \texttt{0} 	& \texttt{phi1} & \texttt{phi2} & \dots \\
+    \texttt{V1} 	& \texttt{R11} 	& \texttt{R12} 	& \dots \\
+    \texttt{V2} 	& \texttt{R21} 	& \texttt{R22}	& \dots \\
+    \dots 		& \dots 	& \dots 	& \dots \\
+  \end{tabular}
+\end{table}
+
+
+\section{in\_Ri}
+
+The induced resistance is calculated using classical aerodinamic coefficients. Its value is then given by:
+
+\begin{center} 
+  $ R_i = \frac{1}{2} rho_w V^2 APK C_d $ 
+\end{center}
+
+where $C_d$ is a function of both $C_l$ and of the heeling angle.
+This file contains a a table in the same format as the ones before, reporting on the first line a \texttt{0} followed by the heeling angles and on the following lines a $C_l$ followed by the corrisponding $C_d$s for every heel angle provided in the first line.
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{l l l l}
+    \texttt{0} 	& \texttt{phi1} & \texttt{phi2} & \dots \\
+    \texttt{Cl1} 	& \texttt{Cd11} & \texttt{Cd12} & \dots \\
+    \texttt{Cl2} 	& \texttt{Cd21} & \texttt{Cd22}	& \dots \\
+    \dots 		& \dots 	& \dots 	& \dots \\
+  \end{tabular}
+\end{table}
+
+\chapter{Output files}
+\label{chapter_OutputFiles}
+gvpp produce an output file named \texttt{results.dat}. This is a plain text file reporting, in a readable format, all the results of the calculation in columns. At the end of the file, the best VMG upwind and downwind are reported, followed by the time required to do 100 m upwind, 100 m downwind and the sum of them.
+The results reported are:
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{l l}
+    \texttt{V\_tw}		&True wind velocity\\
+    \texttt{alfa\_tw}	&True wind angle\\
+    \texttt{V}		&Boat speed\\
+    \texttt{VMG}		&Boat VMG\\
+    \texttt{phi}		&Heeling angle\\
+    \texttt{b}		&Crew arm\\
+    \texttt{F}		&Flattening factor\\
+    \texttt{Fdrive}		&Drive Force\\
+    \texttt{Fside}		&Side force\\
+    \texttt{Mheel}		&Heeling moment\\
+    \texttt{Rtot}		&Total resistance\\
+    \texttt{Rrh+RrhH}	&Hull residuary resistance\\
+    \texttt{Rvh+RvhH}	&Hull viscous resistance\\
+    \texttt{Rrk+RrkH}	&Keel residuary resistance\\
+    \texttt{Rvk}		&Keel viscous resistance\\
+    \texttt{Ri}		&Keel induced resistance\\
+    \texttt{Rvr}		&Rudder viscous resistance\\
+  \end{tabular}
+\end{table}
+
+\chapter*{Acknowledgements}
+I would like to thank Russell Carpenter for the debugging and the enhancements in the post processing part of gvpp.
+\begin{thebibliography}{9}
+  \bibitem{DSYHS} 	\textsc{J.A. Keunig, U.B. Sonnenberg}, \textit{Approximation of the Calm Water Reistance on a Sailing Yacht Based on the Delft Systematic Yacht Hull Series}, The 14th Chesapake Sailing Yacht Symposium, 1999
+  \bibitem{PYD} 		\textsc{L. Larsson, R.E. Eliason}, \textit{Principles of Yach Design}, Adlard Coles Nautical, 2004
+  \bibitem{PCSAIL} 	\textsc{David E. Martin, Robert F. Beck}, \textit{PCSAIL, A Velocity Prediction Program for a Home Computer}, The 15th Chesapake Sailing Yacht Sumposium
+\end{thebibliography}
+\end{document}

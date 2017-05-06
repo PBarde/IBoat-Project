@@ -1,0 +1,17 @@
+% this file contains VPP configuration for the calculation of boat's resistance
+% the following values may be provided
+% 0 - resistance component is not included in calculation (i.e. is set to 0)
+% 1 - resistance component is provided in a user provided ASCII file (i.e. from michlet files)
+% 2 - resistance component is calcolated using the DSYHS (Keunig Sommemberg, 1999)
+
+Rvh     2
+Rrh     2
+Rvk     2
+Rvr     2
+Rrk     2
+RvhH    2
+RrhH    2
+RrkH    2
+Ri      2
+RrhT    0 %not yet implemented
+ 
